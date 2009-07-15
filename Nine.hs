@@ -57,26 +57,26 @@ instance Binary MessageClient where
              mtype <- getWord8
              getSpecific s mtype
         where 
-          getSpecific s mt 
-                      | mt == mtRversion = do t <- getWord16le
-                                              ms <- getWord32le
-                                              ss <- getWord16le
-                                              v <- getLazyByteString $ fromIntegral ss
-                                              return $ MessageClient $ Rversion {size=s,
-                                                                                 mtype=mt,
-                                                                                 tag=t,
-                                                                                 msize=ms,
-                                                                                 ssize=ss,
-                                                                                 version=v}
-                      | mt == mtRerror = do t <- getWord16le
-                                            ss <- getWord16le
-                                            e <- getLazyByteString $ fromIntegral ss
-                                            return $ MessageClient $ Rerror {size=s,
-                                                                             mtype=mt,
-                                                                             tag=t,
-                                                                             ssize=ss,
-                                                                             ename=e}
-
+          getSpecific s mtRversion = rtVersion mtRversion s
+          getSpecific s mtTversion = rtVersion mtTversion s
+          getSpecific s mtRerror = do t <- getWord16le
+                                      ss <- getWord16le
+                                      e <- getLazyByteString $ fromIntegral ss
+                                      return $ MessageClient $ Rerror {size=s,
+                                                                       mtype=mtRerror,
+                                                                       tag=t,
+                                                                       ssize=ss,
+                                                                       ename=e}
+          rtVersion val s = do t <- getWord16le
+                               ms <- getWord32le
+                               ss <- getWord16le
+                               v <- getLazyByteString $ fromIntegral ss
+                               return $ MessageClient $ Rversion {size=s,
+                                                                  mtype=val,
+                                                                  tag=t,
+                                                                  msize=ms,
+                                                                  ssize=ss,
+                                                                  version=v}
 tversionClientMessage :: MessageClient
 tversionClientMessage = MessageClient $ Tversion {size = 19,
                                                   mtype = mtTversion,
