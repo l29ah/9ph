@@ -1,5 +1,55 @@
 {-# LANGUAGE TypeSynonymInstances #-}
-module Data.NineP where
+-----------------------------------------------------------------------------
+-- |
+-- Module      : Data.NineP
+-- Copyright   : Tim Newsham
+-- License     : BSD3-style (see LICENSE)
+-- 
+-- Maintainer  : David Leimbach <leimy2k@gmail.com>
+-- Stability   : experimental
+-- Portability : Only tested on GHC 6.12.1, uses TypeSynonnymInstances
+--
+-- Binary serialization of 9P messages to and from lazy ByteStrings.
+-- This library does not currently provide any networking support or 
+-- wrappers for easy to write clients or servers, though that may come 
+-- with time as we decide the best way to implement these.
+-- 
+-- Perhaps interesting about 9P is that the messages are send in little endian
+-- as opposed to the somewhat misnamed "network byte order" that most people
+-- refer to for "big endian".
+--
+-- It's fairly easy to use runPut or runGet to generate or parse 9P messages
+-- example: 
+--
+--   send sock $ runPut (put (Msg TTVersion (-1) & Tversion 1024 "9P2000"))
+-- 
+-- This sends a lazy ByteString over a socket to begin a handshake of a 9P 
+-- connection with a server, negotiating the use of the "9P2000" protocol, 
+-- with a maximum message size of 1KB, using a tag of (-1) (known as NOTAG in 
+-- 9P space.
+--
+-- This 9P implementation has been lightly tested against an Inferno operating
+-- system share with no authentication successfully.
+-----------------------------------------------------------------------------
+
+module Data.NineP ( 
+                  -- * Bin is the little endian encode/decode class for 9P2000
+                   Bin(..)
+                  -- * The Qid class (http://9p.cat-v.org for details)
+                  , Qid(..)
+
+                  -- * like stat for unix filesystems, but for 9P2000
+                  , Stat(..)
+
+                  -- * The Msg type is an enveleope for 9P2000 messages
+                  , Msg(..)
+                       
+                  -- * Tag is the (possibly misnamed) message payload type
+                  , Tag(..)
+
+                  -- * VarMsg is an algebraic type allowing for the various types of messages 9P2000 can have to be grouped under one type
+                  , VarMsg(..)
+                  ) where
 import Control.Applicative
 import Control.Monad
 import Data.Binary.Get
@@ -13,38 +63,52 @@ import Debug.Trace
 tr msg n = trace (msg ++ show n) n
 -- -}
 
--- Little-endian binary class
+-- * Little-endian binary class
 class Bin a where
     get :: Get a
     put :: a -> Put
 
+-- * Instance of Bin for Word8 data
 instance Bin Word8 where
     get = getWord8
     put = putWord8
+
+-- * Instance of Bin for Word16 data
 instance Bin Word16 where
     get = getWord16le
     put = putWord16le
+
+-- * Instance of Bin for Word32 data
 instance Bin Word32 where
     get = getWord32le
     put = putWord32le
+
+-- * Instance of Bin for Word64 data
 instance Bin Word64 where
     get = getWord64le
     put = putWord64le
+
+-- * Instance of Bin for Char data
 instance Bin Char where
     get = chr . fromIntegral <$> getWord8
     put = putWord8 . fromIntegral . ord
+
+-- * Instance of Bin for String data
 instance Bin String where
     get = getWord16le >>= \n -> replicateM (fromIntegral n) get
     put xs = putWord16le (fromIntegral $ length xs) >> mapM_ put xs
 
+-- * A Plan 9 Qid type.  See http://9p.cat-v.org for more information
 data Qid = Qid {
     qid_typ :: Word8,
     qid_vers :: Word32,
     qid_path :: Word64 } deriving (Show, Eq)
 
+-- * Instnace of Bin for Qid.
 instance Bin Qid where
     get = Qid <$> get <*> get <*> get
     put (Qid t v p) = put t >> put v >> put p
+
 
 getNest :: Integral n => n -> Get a -> Get a
 getNest sz g = do

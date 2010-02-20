@@ -6,10 +6,8 @@ import qualified Data.ByteString.Lazy.Char8 as C
 import Network.Socket hiding (send, recv)
 import Network.Socket.ByteString.Lazy
 import Data.Int
-import Data.Binary hiding (get, put)
 import Data.Binary.Get
 import Data.Binary.Put
-import Data.Binary.Builder
 import Debug.Trace
 import Data.NineP
 
