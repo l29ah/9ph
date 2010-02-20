@@ -1,10 +1,9 @@
 {-# LANGUAGE TypeSynonymInstances #-}
-module NineP where
+module Data.NineP where
 import Control.Applicative
 import Control.Monad
 import Data.Binary.Get
 import Data.Binary.Put
-import Data.Bits
 import Data.Char
 import Data.Word
 import qualified Data.ByteString.Lazy as L
@@ -287,6 +286,7 @@ data Msg = Msg {
     msg_tag :: Word16,
     msg_body :: VarMsg } deriving(Show, Eq)
 
+maxSize :: Word32
 maxSize = 1024 * 1024 -- XXX arbitrary, configured?
 
 instance Bin Msg where
