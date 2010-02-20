@@ -12,7 +12,7 @@ description:	Pure Haskell implementation of the 9P2000 protocol from the
 		Plan 9 and Inferno operating systems.  Many implementations of
 		9P2000 exist including the Linux kernel v9fs module, wmii 
 		(X window manager).  More information on 9P and implementations
-		may be found at http://9p.cat-v.org
+		may be found at http:\/\/9p.cat-v.org
 build-type:	Simple
 cabal-version:	>= 1.8.0.2
 tested-with:	GHC == 6.12.1
