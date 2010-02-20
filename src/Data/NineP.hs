@@ -49,6 +49,12 @@ module Data.NineP (
 
                   -- ** VarMsg is an algebraic type allowing for the various types of messages 9P2000 can have to be grouped under one type
                   , VarMsg(..)
+                          
+                  -- ** Function that can encode all VarMsg types to a lazy ByteString
+                  , putVarMsg
+
+                  -- ** Function to decode all VarMsg types from a lazy ByteString
+                  , getVarMsg
                   ) where
 import Control.Applicative
 import Control.Monad
