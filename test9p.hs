@@ -11,7 +11,7 @@ import Data.Binary.Get
 import Data.Binary.Put
 import Data.Binary.Builder
 import Debug.Trace
-import NineP
+import Data.NineP
 
 connector :: IO Socket 
 connector = withSocketsDo $
