@@ -44,10 +44,10 @@ module Data.NineP (
                   -- * The Msg type is an enveleope for 9P2000 messages
                   , Msg(..)
                        
-                  -- * Tag is the (possibly misnamed) message payload type
+                  -- ** Tag is the (possibly misnamed) message payload type
                   , Tag(..)
 
-                  -- * VarMsg is an algebraic type allowing for the various types of messages 9P2000 can have to be grouped under one type
+                  -- ** VarMsg is an algebraic type allowing for the various types of messages 9P2000 can have to be grouped under one type
                   , VarMsg(..)
                   ) where
 import Control.Applicative
@@ -63,53 +63,47 @@ import Debug.Trace
 tr msg n = trace (msg ++ show n) n
 -- -}
 
--- * Little-endian binary class
+-- Little-endian binary class
 class Bin a where
     get :: Get a
     put :: a -> Put
 
--- * Instance of Bin for Word8 data
 instance Bin Word8 where
     get = getWord8
     put = putWord8
 
--- * Instance of Bin for Word16 data
 instance Bin Word16 where
     get = getWord16le
     put = putWord16le
 
--- * Instance of Bin for Word32 data
 instance Bin Word32 where
     get = getWord32le
     put = putWord32le
 
--- * Instance of Bin for Word64 data
 instance Bin Word64 where
     get = getWord64le
     put = putWord64le
 
--- * Instance of Bin for Char data
 instance Bin Char where
     get = chr . fromIntegral <$> getWord8
     put = putWord8 . fromIntegral . ord
 
--- * Instance of Bin for String data
 instance Bin String where
     get = getWord16le >>= \n -> replicateM (fromIntegral n) get
     put xs = putWord16le (fromIntegral $ length xs) >> mapM_ put xs
 
--- * A Plan 9 Qid type.  See http://9p.cat-v.org for more information
+-- | A Plan 9 Qid type.  See http://9p.cat-v.org for more information
 data Qid = Qid {
     qid_typ :: Word8,
     qid_vers :: Word32,
     qid_path :: Word64 } deriving (Show, Eq)
 
--- * Instnace of Bin for Qid.
+-- Instnace of Bin for Qid.
 instance Bin Qid where
     get = Qid <$> get <*> get <*> get
     put (Qid t v p) = put t >> put v >> put p
 
-
+-- | Takes a fixed size lazy ByteString @sz@, running @g@ on it, and returning the result if all the input is consumed, uses @Prelude.error@ otherwise. (Throws an exception)
 getNest :: Integral n => n -> Get a -> Get a
 getNest sz g = do
     b <- getLazyByteString (fromIntegral sz)
@@ -122,7 +116,7 @@ getNest sz g = do
               n <- remaining
               error $ show n ++ " extra bytes in nested structure"
 
-
+-- | Provides information on a path entry at a 9P2000 server
 data Stat = Stat {
     st_typ :: Word16,
     st_dev :: Word32,
@@ -147,7 +141,7 @@ instance Bin Stat where
         putLazyByteString buf
       where p  = put a >> put b >> put c >> put d >> put e >> put f >> put g >> put h >> put i >> put j >> put k
 
-
+-- | A variable message type that encapsulates the valid kinds of messages in a 9P2000 payload
 data VarMsg = 
     Tversion {
         tv_msize :: Word32,
@@ -211,6 +205,7 @@ data VarMsg =
     deriving (Show, Eq)
 
 
+-- | A type that enumerates all the valid (and one invalid) message types in 9P2000
 data Tag = TTversion | TRversion | TTauth | TRauth | TTattach | TRattach
     | XXX_TTerror | TRerror | TTflush | TRflush 
     | TTwalk | TRwalk | TTopen | TRopen 
@@ -227,32 +222,44 @@ instance Bin Tag where
                     else error $ "invalid tag: " ++ (show n)
     put = putWord8 . toEnum . (+ 100) . fromEnum
 
+-- | A monadic action in Get that returns all parseable entries as a list, returning [] if none exist
 getListAll :: (Bin a) => Get [a]
 getListAll = do
     e <- isEmpty 
     if e 
       then return [] 
       else (:) <$> get <*> getListAll
+
+-- | A monadic action in Put that maps all encodable items into the Put monad for serialization
 putListAll :: (Bin a) => [a] -> Put
 putListAll = mapM_ put
 
+-- | Like 'getNest' but is preceded by a little endian 16bit word.  Useful for retrieving 16bit payload lengths from 9P2000 messages that support it.
 getNestList16 :: (Bin a) => Get [a]
 getNestList16 = do
     n <- getWord16le
     getNest n getListAll
+
+-- | Runs 'putListAll' over @xs@ followed by computing the 16bit (little endian) length of the list, and prepending it to the final payload.  Useful for automatically computing lengths for 9P2000 messages that require it
 putNestList16 :: Bin a => [a] -> Put
 putNestList16 xs = do
     let buf = runPut (putListAll xs)
     putWord16le $ fromIntegral $ L.length buf
     putLazyByteString buf
 
+-- | Gets a 16bit value from the stream, then executes @Data.Binary.Get.get@ that many times to produce a list of parsed values.
 getList16 :: Bin a => Get [a]
 getList16 = getWord16le >>= \n -> replicateM (fromIntegral n) get
+
+-- | Puts @xs@ into the Put stream prepended by its length.
 putList16 :: Bin a => [a] -> Put
 putList16 xs = putWord16le (fromIntegral $ length xs) >> mapM_ put xs
 
+-- | Gets a 32bit little endian legnth from the stream, then gets a lazy ByteString of that size from the stream, returning only the ByteString
 getBytes32 :: Get L.ByteString
 getBytes32 = getWord32le >>= getLazyByteString . fromIntegral
+
+-- | Takes length of @xs@ and then prepends that to the lazy ByteString it places in the Stream
 putBytes32 :: L.ByteString -> Put
 putBytes32 xs = putWord32le (fromIntegral $ L.length xs) >> putLazyByteString xs
 
@@ -285,6 +292,7 @@ getTag (Rstat _) = TRstat
 getTag (Twstat _ _) = TTwstat
 getTag (Rwstat) = TRwstat
 
+-- | For every messages type, runs a Get parser to decode that type of payload from the 9P2000 stream
 getVarMsg :: Tag -> Get VarMsg
 getVarMsg TTversion = Tversion <$> get <*> get
 getVarMsg TRversion = Rversion <$> get <*> get
@@ -315,6 +323,7 @@ getVarMsg TRstat = Rstat <$> getNestList16
 getVarMsg TTwstat = Twstat <$> get <*> getNestList16
 getVarMsg TRwstat = return Rwstat
 
+-- | For every lower level VarMsg type, encodes a full wrapper around that type for use with 9P2000 streams
 putVarMsg :: VarMsg -> Put
 putVarMsg (Tversion a b) = put a >> put b
 putVarMsg (Rversion a b) = put a >> put b
@@ -344,12 +353,13 @@ putVarMsg (Rstat a) = putNestList16 a
 putVarMsg (Twstat a b) = put a >> putNestList16 b
 putVarMsg (Rwstat) = return ()
 
-
+-- | The message envelope type for all 9P2000 messages
 data Msg = Msg {
     msg_typ :: Tag,
     msg_tag :: Word16,
     msg_body :: VarMsg } deriving(Show, Eq)
 
+-- | An arbitrarily chosen maxiumum size for any Msg
 maxSize :: Word32
 maxSize = 1024 * 1024 -- XXX arbitrary, configured?
 
