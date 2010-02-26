@@ -7,54 +7,48 @@
 -- 
 -- Maintainer  : David Leimbach <leimy2k@gmail.com>
 -- Stability   : experimental
--- Portability : Only tested on GHC 6.12.1, uses TypeSynonnymInstances
+-- Portability : Only tested on GHC 6.12.1, uses TypeSynonymInstances
 --
--- Binary serialization of 9P messages to and from lazy ByteStrings.
+-- Module providing Binary serialization of 9P messages to and from lazy 
+-- ByteStrings.
+-- 
 -- This library does not currently provide any networking support or 
 -- wrappers for easy to write clients or servers, though that may come 
 -- with time as we decide the best way to implement these.
 -- 
--- Perhaps interesting about 9P is that the messages are send in little endian
--- as opposed to the somewhat misnamed "network byte order" that most people
--- refer to for "big endian".
+-- 9P2000 messages are sent in little endian byte order rather than network byte order 
+-- (big endian)
 --
--- It's fairly easy to use runPut or runGet to generate or parse 9P messages
--- example: 
---
---   send sock $ runPut (put (Msg TTVersion (-1) & Tversion 1024 "9P2000"))
--- 
--- This sends a lazy ByteString over a socket to begin a handshake of a 9P 
--- connection with a server, negotiating the use of the "9P2000" protocol, 
--- with a maximum message size of 1KB, using a tag of (-1) (known as NOTAG in 
--- 9P space.
---
--- This 9P implementation has been lightly tested against an Inferno operating
+-- Lightly tested against an Inferno operating
 -- system share with no authentication successfully.
 -----------------------------------------------------------------------------
 
 module Data.NineP ( 
-                  -- * Bin is the little endian encode/decode class for 9P2000
+                  -- * Bin - a little endian encode/decode class for Binary
                    Bin(..)
-                  -- * The Qid class (http://9p.cat-v.org for details)
+                  -- * Qid - Server side data type for path tracking (<http://9p.cat-v.org> for details)
                   , Qid(..)
 
-                  -- * like stat for unix filesystems, but for 9P2000
+                  -- * Stat - Namespace metadata /(somewhat like a unix fstat)/
                   , Stat(..)
 
-                  -- * The Msg type is an enveleope for 9P2000 messages
+                  -- * Msg - envelope for 9P2000 messages
                   , Msg(..)
                        
-                  -- ** Tag is the (possibly misnamed) message payload type
+                  -- ** Tag - A message payload type
                   , Tag(..)
 
-                  -- ** VarMsg is an algebraic type allowing for the various types of messages 9P2000 can have to be grouped under one type
+                  -- ** VarMsg - A data type encapsulating the various 9P messages 
                   , VarMsg(..)
                           
-                  -- ** Function that can encode all VarMsg types to a lazy ByteString
+                  -- ** putVarMsg - function that can encode all VarMsg types to a lazy ByteString
                   , putVarMsg
 
-                  -- ** Function to decode all VarMsg types from a lazy ByteString
+                  -- ** getVarMsg - function to decode all VarMsg types from a lazy ByteString
                   , getVarMsg
+
+                  -- * Example
+                  -- $example
                   ) where
 import Control.Applicative
 import Control.Monad
@@ -211,7 +205,7 @@ data VarMsg =
     deriving (Show, Eq)
 
 
--- | A type that enumerates all the valid (and one invalid) message types in 9P2000
+-- | A type that enumerates all the valid /(and one invalid)/ message types in 9P2000
 data Tag = TTversion | TRversion | TTauth | TRauth | TTattach | TRattach
     | XXX_TTerror | TRerror | TTflush | TRflush 
     | TTwalk | TRwalk | TTopen | TRopen 
@@ -269,6 +263,7 @@ getBytes32 = getWord32le >>= getLazyByteString . fromIntegral
 putBytes32 :: L.ByteString -> Put
 putBytes32 xs = putWord32le (fromIntegral $ L.length xs) >> putLazyByteString xs
 
+-- | Convertss VarMsg types to Tag values
 getTag :: VarMsg -> Tag
 getTag (Tversion _ _) = TTversion
 getTag (Rversion _ _) = TRversion
@@ -385,3 +380,58 @@ instance Bin Msg where
         putWord32le $ fromIntegral $ L.length buf + 4
         putLazyByteString buf
 
+
+-- --------------------------------------------------------------------
+-- $example
+--
+-- Exchanging initial version data with any 9P2000 server
+--
+-- > module Main where
+--
+-- > import Data.Maybe
+-- > import Control.Monad
+-- > import qualified Data.ByteString.Lazy.Char8 as C
+-- > import Network.Socket hiding (send, recv)
+-- > import Network.Socket.ByteString.Lazy
+-- > import Data.Int
+-- > import Data.Binary.Get
+-- > import Data.Binary.Put
+-- > import Debug.Trace
+-- > import Data.NineP
+-- > 
+-- > connector :: IO Socket 
+-- > connector = withSocketsDo $
+-- >             do
+-- >               ainfo <- getAddrInfo Nothing (Just "127.0.0.1") (Just "6872")
+-- >               let a = head ainfo
+-- >               sock <- socket AF_INET Stream defaultProtocol
+--
+-- At this point we've just created our socket to a machine on 127.0.0.1:6872 
+-- where we'd expect to see a 9P2000 server.
+--
+-- >               putStrLn "Trying to connect"
+-- >               connect sock (addrAddress (traceShow a a))
+-- >               putStrLn "connected!"
+--
+-- The socket is connected at this point, build up a TVersion message, asking
+-- to speak to the server with the 9P2000 protocol. 
+--
+-- The 1024 tells the server the maximum message size we'd like to support.
+--
+-- >               let version = Msg TTversion (-1) $ Tversion 1024 "9P2000"
+-- >               putStrLn $ "About to send: " ++ show version
+--
+-- We now need to pack the message into a bytestring.  This is handled by the
+-- Bin class instance /Msg/, and the serialization is handled by runPut.
+-- We send this data to the socket.
+--
+-- >               send sock $ runPut (put version) 
+-- >               putStrLn "Getting response"
+--
+-- Now wait for a response from the server, evaluated runGet over it to 
+-- de-serialize it, and show it.
+--
+-- >               msg <- recv sock 50
+-- >               let response = runGet get msg ::Msg
+-- >               putStrLn $ show response
+-- >               return sock
