@@ -1,9 +1,9 @@
 name:		NineP
-version:	0.0.2
+version:	0.0.2.1
 license:	BSD3
 license-file:	LICENSE
-author:		Tim Newsham <newsham@lava.net>, Dave Leimbach <leimy2k@gmail.com>
-maintainer:	Dave Leimbach <leimy2k@gmail.com>
+author:		Tim Newsham <newsham@lava.net>, Dave Leimbach <leimy2k@gmail.com>, Sergey Alirzaev <zl29ah@gmail.com>
+maintainer:	Sergey Alirzaev <zl29ah@gmail.com>
 stability:	Experimental
 homepage:	http://9ph.googlecode.com
 synopsis:	9P2000 in pure Haskell
@@ -15,7 +15,16 @@ description:	Pure Haskell implementation of the 9P2000 protocol from the
 		may be found at http:\/\/9p.cat-v.org
 build-type:	Simple
 cabal-version:	>= 1.8.0.2
-tested-with:	GHC == 6.12.1
+tested-with:	GHC == 7.6.3
+
+source-repository head
+    type:       hg
+    location:   https://code.google.com/p/9ph/
+
+source-repository this
+    type:       hg
+    location:   https://code.google.com/p/9ph/
+    tag:        0.0.2.1
 
 flag bytestring-in-base
 
