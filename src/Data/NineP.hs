@@ -1,4 +1,4 @@
-{-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE FlexibleInstances, TypeSynonymInstances #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      : Data.NineP
