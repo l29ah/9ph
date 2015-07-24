@@ -113,7 +113,7 @@ getNest sz g = do
           then return x
           else do
               remain <- getRemainingLazyByteString
-              error $ show (L.length rem) ++ " extra bytes in nested structure"
+              error $ show (L.length remain) ++ " extra bytes in nested structure"
 
 -- | Provides information on a path entry at a 9P2000 server
 data Stat = Stat {

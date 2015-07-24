@@ -5,7 +5,7 @@ license-file:	LICENSE
 author:		Tim Newsham <newsham@lava.net>, Dave Leimbach <leimy2k@gmail.com>, Sergey Alirzaev <zl29ah@gmail.com>
 maintainer:	Sergey Alirzaev <zl29ah@gmail.com>
 stability:	Experimental
-homepage:	http://9ph.googlecode.com
+homepage:	https://code.google.com/p/9ph/
 synopsis:	9P2000 in pure Haskell
 category:	Data
 description:	Pure Haskell implementation of the 9P2000 protocol from the 
@@ -15,15 +15,15 @@ description:	Pure Haskell implementation of the 9P2000 protocol from the
 		may be found at http:\/\/9p.cat-v.org
 build-type:	Simple
 cabal-version:	>= 1.8.0.2
-tested-with:	GHC == 7.6.3
+tested-with:	GHC == 7.10.2
 
 source-repository head
-    type:       hg
-    location:   https://code.google.com/p/9ph/
+    type:       git
+    location:   https://github.com/l29ah/9ph/
 
 source-repository this
-    type:       hg
-    location:   https://code.google.com/p/9ph/
+    type:       git
+    location:   https://github.com/l29ah/9ph/
     tag:        0.0.2.1
 
 flag bytestring-in-base
