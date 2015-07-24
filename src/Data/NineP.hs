@@ -50,7 +50,6 @@ module Data.NineP (
                   -- * Example
                   -- $example
                   ) where
-import Control.Applicative
 import Control.Monad
 import Data.Binary.Get
 import Data.Binary.Put
@@ -113,8 +112,8 @@ getNest sz g = do
         if e
           then return x
           else do
-              n <- remaining
-              error $ show n ++ " extra bytes in nested structure"
+              remain <- getRemainingLazyByteString
+              error $ show (L.length rem) ++ " extra bytes in nested structure"
 
 -- | Provides information on a path entry at a 9P2000 server
 data Stat = Stat {
