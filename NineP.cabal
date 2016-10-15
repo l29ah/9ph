@@ -5,7 +5,7 @@ license-file:	LICENSE
 author:		Tim Newsham <newsham@lava.net>, Dave Leimbach <leimy2k@gmail.com>, Sergey Alirzaev <zl29ah@gmail.com>
 maintainer:	Sergey Alirzaev <zl29ah@gmail.com>
 stability:	Experimental
-homepage:	https://code.google.com/p/9ph/
+homepage:	https://github.com/l29ah/9ph
 synopsis:	9P2000 in pure Haskell
 category:	Data
 description:	Pure Haskell implementation of the 9P2000 protocol from the 
