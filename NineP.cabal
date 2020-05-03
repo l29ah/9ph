@@ -39,4 +39,4 @@ library
     hs-source-dirs:   src
     exposed-modules:  Data.NineP      
 
-    ghc-options:      -O2 -Wall
+    ghc-options:      -O2 -Wall -fno-warn-tabs
